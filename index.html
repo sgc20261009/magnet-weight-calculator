@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>磁钢重量计算器 · 钕铁硼 / 铁氧体</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#2b3441;
+    --text:#e6edf3; --muted:#8b98a9; --accent:#2f81f7; --accent2:#f77825;
+    --ok:#3fb950; --warn:#d29922; --nd:#2f81f7; --fe:#f77825;
+    --input:#0d1117;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:28px 16px 60px;}
+  h1{font-size:24px; margin:0 0 4px;}
+  .sub{color:var(--muted); font-size:14px; margin-bottom:22px;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px 18px 20px; margin-bottom:18px;}
+  .card h2{font-size:16px; margin:0 0 14px; display:flex; align-items:center; gap:8px;}
+  .badge{font-size:11px; padding:2px 8px; border-radius:999px; font-weight:400;}
+  .b-nd{background:rgba(47,129,247,.15); color:#6aa5f7; border:1px solid rgba(47,129,247,.4);}
+  .b-fe{background:rgba(247,120,37,.15); color:#f0a35a; border:1px solid rgba(247,120,37,.4);}
+  .row{display:flex; gap:12px; flex-wrap:wrap;}
+  .row > div{flex:1 1 140px;}
+  label{display:block; font-size:13px; color:var(--muted); margin-bottom:5px;}
+  input[type=text], input[type=number], select{
+    width:100%; background:var(--input); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:9px 11px; font-size:15px; outline:none;
+  }
+  input:focus, select:focus{border-color:var(--accent);}
+  .unit{position:relative;}
+  .unit span{position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px; pointer-events:none;}
+  .density-hint{margin-top:14px; font-size:13px; color:var(--muted); background:var(--panel2); border-radius:8px; padding:10px 12px;}
+  .density-hint b{color:var(--text);}
+
+  /* 结果 */
+  .result{display:flex; gap:20px; flex-wrap:wrap; align-items:flex-end;}
+  .r-main{flex:1 1 200px;}
+  .r-num{font-size:42px; font-weight:700; color:var(--accent); letter-spacing:.5px;}
+  .r-num .u{font-size:18px; color:var(--muted); font-weight:400; margin-left:4px;}
+  .r-sub{color:var(--muted); font-size:14px; margin-top:2px;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .chip{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:13px; color:var(--muted);}
+  .chip b{color:var(--text); font-size:15px; display:block;}
+
+  /* 批量 */
+  .tblwrap{overflow-x:auto;}
+  table{width:100%; border-collapse:collapse; font-size:14px;}
+  th,td{padding:9px 8px; text-align:left; border-bottom:1px solid var(--line);}
+  th{color:var(--muted); font-weight:500; white-space:nowrap;}
+  td input{padding:6px 8px; font-size:14px; min-width:70px;}
+  td.mat{min-width:120px;}
+  td .calc{font-weight:600; color:var(--ok);}
+  .del{background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;}
+  .del:hover{color:#f85149;}
+  .total-row td{font-weight:700; color:var(--text); border-bottom:none; border-top:2px solid var(--line);}
+  .total-row .calc{color:var(--accent);}
+  .btn{background:var(--accent); color:#fff; border:none; border-radius:8px; padding:9px 16px; font-size:14px; cursor:pointer;}
+  .btn:hover{filter:brightness(1.1);}
+  .btn.ghost{background:transparent; border:1px solid var(--line); color:var(--muted);}
+  .empty{color:var(--muted); text-align:center; padding:20px; font-size:14px;}
+  .tip{font-size:12px; color:var(--muted); margin-top:10px;}
+  .legend{font-size:13px; color:var(--muted); margin:0 0 12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>磁钢重量计算器</h1>
+  <div class="sub">输入尺寸 → 选材料 → 自动算重量。密度:钕铁硼 <b>7.5 g/cm³</b> · 铁氧体 <b>5.0 g/cm³</b>(可改)。</div>
+
+  <!-- 单块 -->
+  <div class="card">
+    <h2>单块计算 <span class="badge b-nd">钕铁硼</span><span class="badge b-fe">铁氧体</span></h2>
+    <div class="row">
+      <div>
+        <label>长(mm)</label>
+        <div class="unit"><input id="l" type="text" inputmode="decimal" placeholder="例 20"><span>mm</span></div>
+      </div>
+      <div>
+        <label>宽(mm)</label>
+        <div class="unit"><input id="w" type="text" inputmode="decimal" placeholder="例 25"><span>mm</span></div>
+      </div>
+      <div>
+        <label>厚(mm)</label>
+        <div class="unit"><input id="h" type="text" inputmode="decimal" placeholder="例 3.5"><span>mm</span></div>
+      </div>
+      <div>
+        <label>材料</label>
+        <select id="mat">
+          <option value="nd" data-d="7.5">钕铁硼 NdFeB(7.5)</option>
+          <option value="fe" data-d="5.0">铁氧体 Ferrite(5.0)</option>
+          <option value="custom">自定义密度…</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <div style="max-width:200px;">
+        <label id="densLabel">密度(g/cm³)</label>
+        <input id="dens" type="text" inputmode="decimal" value="7.5" style="display:none;">
+      </div>
+    </div>
+
+    <div class="result" style="margin-top:16px;">
+      <div class="r-main">
+        <div class="r-num"><span id="rWeight">0.00</span><span class="u">克</span></div>
+        <div class="r-sub">单块 · 约 <span id="rKg">0.000</span> 公斤</div>
+      </div>
+      <div class="chips">
+        <div class="chip"><b id="rVol">0.00</b>体积 cm³</div>
+        <div class="chip"><b id="rDens">7.5</b>密度 g/cm³</div>
+      </div>
+    </div>
+    <div class="density-hint">
+      <b>公式</b>:重量(g) = 长(cm) × 宽(cm) × 厚(cm) × 密度。输入单位是 <b>mm</b>,已自动换算为 cm。
+      选择「自定义密度」可手动填,比如铁氧体注塑体 ~4.6、钕铁硼 N35~N52 约 7.5~7.8。
+    </div>
+  </div>
+
+  <!-- 批量 -->
+  <div class="card">
+    <h2>批量核算(按片数累加)</h2>
+    <p class="legend">每行填尺寸 + 材料 + 片数,下方自动合计总克/总公斤,方便下单核重。</p>
+    <div class="tblwrap">
+      <table id="batch">
+        <thead>
+          <tr>
+            <th>规格 mm(长×宽×厚)</th>
+            <th>材料</th>
+            <th>片数</th>
+            <th>单块克</th>
+            <th>小计克</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="batchBody"></tbody>
+        <tfoot id="batchFoot">
+          <tr class="total-row">
+            <td colspan="4">合计</td>
+            <td class="calc" id="footGram">0.00 g</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="chips" style="margin-top:14px;">
+      <div class="chip"><b id="footKg">0.000</b>合计公斤</div>
+      <div class="chip"><b id="footPieces">0</b>总片数</div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn" id="addRow">+ 加一行</button>
+      <button class="btn ghost" id="clearAll">清空</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DENS = { nd:7.5, fe:5.0 };
+const DENSITY_KEY = 'magnet_dens';
+
+// ---------- 单块 ----------
+const els = ['l','w','h','mat','dens'].map(id=>document.getElementById(id));
+const mat = document.getElementById('mat');
+const dens = document.getElementById('dens');
+const densLabel = document.getElementById('densLabel');
+
+function curDensity(){
+  const v = mat.value;
+  if(v==='custom'){ return parseFloat(dens.value)||0; }
+  return DENS[v];
+}
+
+function recalcSingle(){
+  const l = parseFloat(document.getElementById('l').value)/10; // mm->cm
+  const w = parseFloat(document.getElementById('w').value)/10;
+  const h = parseFloat(document.getElementById('h').value)/10;
+  const d = curDensity();
+  const vol = (l*w*h);           // cm³
+  const g   = (vol>0&&d>0)? vol*d : 0;
+  document.getElementById('rWeight').textContent = g? g.toFixed(2):'0.00';
+  document.getElementById('rKg').textContent     = (g/1000).toFixed(3);
+  document.getElementById('rVol').textContent    = vol? vol.toFixed(2):'0.00';
+  document.getElementById('rDens').textContent   = d? d.toFixed(2):'0.00';
+}
+
+mat.addEventListener('change',()=>{
+  const v = mat.value;
+  if(v==='custom'){
+    dens.style.display='block';
+    densLabel.style.display='block';
+    if(!dens.value||isNaN(parseFloat(dens.value))) dens.value='5.0';
+  } else {
+    dens.style.display='none';
+    densLabel.style.display='none';
+    dens.value = DENS[v];
+  }
+  recalcSingle();
+});
+['l','w','h'].forEach(id=>document.getElementById(id).addEventListener('input',recalcSingle));
+dens.addEventListener('input',recalcSingle);
+
+// ---------- 批量 ----------
+const tbody = document.getElementById('batchBody');
+
+function matSelectHTML(){
+  return `<select class="mat" data-d="${DENS.nd}">
+    <option value="nd" data-d="7.5">钕铁硼(7.5)</option>
+    <option value="fe" data-d="5.0">铁氧体(5.0)</option>
+  </select>`;
+}
+
+function addRow(L,W,H,qty,matval){
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    `<td>
+       <div style="display:flex;gap:4px;align-items:center;">
+         <input class="bL" type="text" inputmode="decimal" value="${L||''}" placeholder="长">
+         <span>×</span>
+         <input class="bW" type="text" inputmode="decimal" value="${W||''}" placeholder="宽">
+         <span>×</span>
+         <input class="bH" type="text" inputmode="decimal" value="${H||''}" placeholder="厚">
+       </div>
+     </td>
+     <td>${matSelectHTML()}</td>
+     <td><input class="bQty" type="text" inputmode="decimal" value="${qty||''}" placeholder="0"></td>
+     <td class="bSingle">-</td>
+     <td class="bSub">-</td>
+     <td><button class="del" title="删除">×</button></td>`;
+  tbody.appendChild(tr);
+  tr.querySelector('.del').onclick=()=>{tr.remove();recalcBatch();};
+  tr.querySelectorAll('input').forEach(i=>i.addEventListener('input',recalcBatch));
+  tr.querySelector('.mat').addEventListener('change',recalcBatch);
+  recalcBatch();
+}
+
+function recalcBatch(){
+  let totG=0, totQty=0;
+  tbody.querySelectorAll('tr').forEach(tr=>{
+    const L=parseFloat(tr.querySelector('.bL').value)/10;
+    const W=parseFloat(tr.querySelector('.bW').value)/10;
+    const H=parseFloat(tr.querySelector('.bH').value)/10;
+    const sel=tr.querySelector('.mat');
+    const d=sel? sel.selectedOptions[0].getAttribute('data-d')*1 : 0;
+    const qty=parseFloat(tr.querySelector('.bQty').value)||0;
+    const vol=(L*W*H);
+    const single = (vol>0&&d>0)? vol*d : 0;
+    const sub = single*qty;
+    tr.querySelector('.bSingle').textContent = single? single.toFixed(2):'-';
+    tr.querySelector('.bSub').textContent    = sub? sub.toFixed(2):'-';
+    totG += sub; totQty += qty;
+  });
+  document.getElementById('footGram').textContent = totG? totG.toFixed(2)+' g': '0.00 g';
+  document.getElementById('footKg').textContent   = (totG/1000).toFixed(3);
+  document.getElementById('footPieces').textContent = totQty;
+}
+
+document.getElementById('addRow').onclick=()=>addRow('','','','');
+document.getElementById('clearAll').onclick=()=>{tbody.innerHTML='';recalcBatch();};
+
+// 预填用户常核算规格(2026 钕铁硼批次)
+addRow(20,25,3.5,'','nd');
+addRow(25,25,3.5,'','nd');
+addRow(30,13.2,5.138,'','nd');
+addRow(25,13.2,5.1,'','nd');
+addRow(25,15.9,4.9,'','nd');
+addRow(25,15.9,6.4,'','nd');
+addRow(16,30,6.5,'','nd');
+</script>
+</body>
+</html>
